@@ -107,7 +107,6 @@ def getBlockData(filePath):
             index += 1
 
 
-
 # reading_doc(distinctDoc, originDoc)
 
 # getBlockData(filePath=block)
