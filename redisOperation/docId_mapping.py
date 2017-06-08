@@ -8,23 +8,24 @@ origin_doc = {}
 
 block = "/Users/devops/workspace/shell/distinct_fingerprinter/block"
 
-distinctDoc = "/Users/devops/workspace/shell/distinct_fingerprinter/distinct_docId_file"
+distinct_doc_path = "/Users/devops/workspace/shell/distinct_fingerprinter/distinct_docId_file"
 
-originDocOne = "/Users/devops/workspace/shell/distinct_fingerprinter/docid_one"
+origin_doc_one_path = "/Users/devops/workspace/shell/distinct_fingerprinter/docid_one"
 
-originDocAnd = "/Users/devops/workspace/shell/distinct_fingerprinter/docid_two"
+origin_doc_two_path = "/Users/devops/workspace/shell/distinct_fingerprinter/docid_two"
 
-originDoc = "/Users/devops/workspace/shell/distinct_fingerprinter/docid"
+origin_doc_path = "/Users/devops/workspace/shell/distinct_fingerprinter/docid"
 
-dedupFile = "/Users/devops/workspace/shell/distinct_fingerprinter/dedup_store.1"
+dedup_file = "/Users/devops/workspace/shell/distinct_fingerprinter/dedup_store.1"
 
 os.sys.path.append("/usr/local/lib/python2.7/site-packages/redis-2.10.5-py2.7.egg")
 
-pool = redis.ConnectionPool(host='172.16.52.91', port=6379, db=14, password="DT:FA66AC61-C2F9-49F1-8A21-A14FCFD521E3")
+pool = redis.ConnectionPool(host='xxx', port=6390, db=14, password="DT:xx")
 
 r = redis.Redis(pool)
 
 pipe = r.pipeline()
+
 
 def reading_doc(dis, origin):
     with open(dis, "r") as file:
@@ -43,11 +44,11 @@ def reading_doc(dis, origin):
     with open(origin, "r") as f:
         index = 0
         for line in f:
-            lineFormat = line.replace("\n", "")
+            line_format = line.replace("\n", "")
             if index == 0:
-                print "line:" + lineFormat
+                print "line:" + line_format
             else:
-                origin_doc[str(index)] = lineFormat
+                origin_doc[str(index)] = line_format
 
             index += 1
 
@@ -57,16 +58,16 @@ def reading_doc(dis, origin):
     print "distinc doc map size: " + str(len(distinct_doc))
     print "doc map size: " + str(len(origin_doc))
 
-def writeDocIdRedis(distinct_doc):
 
+def write_docid_redis(distinct_doc):
     print "started writed redis .... "
     counter = 0
-    redisListKey = "list:docId"
+    redis_list_key = "list:docId"
     size = len(distinct_doc)
     for index in range(1, size + 1, 1):
         name = str(index)
         value = distinct_doc[name]
-        pipe.rpush(redisListKey, value)
+        pipe.rpush(redis_list_key, value)
         if counter % 204800 == 0:
             print "index:" + str(index)
             counter = 0
@@ -78,9 +79,8 @@ def writeDocIdRedis(distinct_doc):
         print "index:" + str(index)
 
 
-def readLineByLine(filePath):
-
-    with open(filePath) as file:
+def read_line_by_line(file_path):
+    with open(file_path) as file:
         index = 0
         for line in file:
             if len(line.split("\t")) == 2:
@@ -91,25 +91,23 @@ def readLineByLine(filePath):
                     print("lequals 1 content:%s index:%s" % (line, str(index)))
             index += 1
 
-def getBlockData(filePath):
 
-    with open(filePath) as file:
+def get_block_data(file_path):
+    with open(file_path) as file:
         index = 0
         for line in file:
             if len(line.split("\t")) == 2:
                 kv = line.replace("\n", "").split("\t")
-                originId = origin_doc[kv[1]]
-                newIndex = distinct_doc[originId]
+                origin_id = origin_doc[kv[1]]
+                new_index = distinct_doc[origin_id]
                 # print "originId:" + originId + ", newIndex :" + newIndex
             else:
                 print "line length equals 1 content:" + line
 
             index += 1
 
-
 # reading_doc(distinctDoc, originDoc)
 
 # getBlockData(filePath=block)
 
 # readLineByLine(dedupFile)
-
