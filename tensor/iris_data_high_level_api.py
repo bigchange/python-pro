@@ -47,11 +47,11 @@ def main():
                                                 n_classes=3,
                                                 model_dir="/tmp/iris_model")
 
+    svm = tf.contrib.learn
     # Define the training inputs
     def get_train_inputs():
         x = tf.constant(training_set.data)
         y = tf.constant(training_set.target)
-        print (x.shape, y.shape)
         return x, y
 
     # Fit model.
@@ -61,7 +61,6 @@ def main():
     def get_test_inputs():
         x = tf.constant(test_set.data)
         y = tf.constant(test_set.target)
-        print(x.shape, y.shape)
         return x, y
 
     # Evaluate accuracy.
