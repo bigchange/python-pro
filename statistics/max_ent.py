@@ -25,21 +25,37 @@ class MaxEnt(object):
                 # (label,f) tuple is feature
                 self.feats[(label, f)] += 1
             self.trainset.append(fields)
+        print "self.feats -> " + str(self.feats)
 
     def _initparams(self):
         self.size = len(self.trainset)
         # M param for GIS training algorithm
         self.M = max([len(record) - 1 for record in self.trainset])
+        print "self.M -> " + str(self.M)
         self.ep_ = [0.0] * len(self.feats)
+        print "self.EP_ -> " + str(self.ep_)
         for i, f in enumerate(self.feats):
             # calculate feature expectation on empirical distribution
-            self.ep_[i] = float(self.feats[f]) / float(self.size)
+            self.ep_[i] = float(self.feats[f]) / float(self.size)   # 1/N
             # each feature function correspond to id
             self.feats[f] = i
         # init weight for each feature
         self.w = [0.0] * len(self.feats)
+        print "self.w -> " + str(self.w)
         self.lastw = self.w
 
+    """calculate p(y|x) """
+    def calprob(self, features):
+        print "features -> " + str(features)
+        wgts = [(self.probwgt(features, l), l) for l in self.labels]
+        print "wgts -> " + str(wgts)
+        Z = sum([w for w, l in wgts])
+        print "Z -> " + str(Z)
+        prob = [(w / Z, l) for w, l in wgts]
+        print "prob -> " + str(prob)
+        return prob
+
+    """sum in one label of each feature """
     def probwgt(self, features, label):
         wgt = 0.0
         for f in features:
@@ -107,12 +123,6 @@ class MaxEnt(object):
             # test if the algorithm is convergence
             if self._convergence(self.lastw, self.w):
                 break
-
-    def calprob(self, features):
-        wgts = [(self.probwgt(features, l), l) for l in self.labels]
-        Z = sum([w for w, l in wgts])
-        prob = [(w / Z, l) for w, l in wgts]
-        return prob
 
     def predict(self, input):
         features = input.strip().split()
