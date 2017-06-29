@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.tensorboard.tensorboard import FLAGS
+import numpy as np
 
 x = tf.placeholder(tf.float32, shape=[None, 784])
 y_ = tf.placeholder(tf.float32, shape=[None, 10])
@@ -69,8 +70,12 @@ y_conv = tf.matmul(h_fc1_drop, W_fc2, name="layer-four") + b_fc2
 # Train and Evaluate the Mode
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv,
                                                         name="cross-entropy")
+beta_regul = tf.placeholder(tf.float32)
+beta_val = np.logspace(-4, -2, 20)
 
 loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
+
+# + 正则化 = + beta_regul * tf.nn.l2_loss(weights)
 
 tf.summary.scalar("loss", loss)
 
@@ -100,7 +105,8 @@ with tf.Session() as sess:
         batch = mnist.train.next_batch(50)
         # TensorBoard
         summary_str, _ = sess.run([summary, train_step],
-                                  feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+                                  feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5,
+                                             beta_regul:beta_regul})
         summary_writer.add_summary(summary_str, i)
         # saving ckpt
         saver.save(sess, ckpt_path, global_step=i)
