@@ -90,7 +90,6 @@ with tf.Session() as sess:
     # visualize tensor board using command: tensorboard --logdir=path/to/log-directory
     summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
     summary = tf.summary.merge_all()
-
     train_step = tf.train.AdamOptimizer(1e-4, name="adam").minimize(cross_entropy, name="minimize")
     correct_prediction = tf.equal(tf.argmax(y_conv, 1, name="y_conv"), tf.argmax(y_, 1, name="y_"),
                                   name="correct_prediction")
