@@ -20,6 +20,7 @@ emission_probability = {
 
 class HMM:
     """
+    隐马尔可夫模型
     Order 1 Hidden Markov Model
  
     Attributes
