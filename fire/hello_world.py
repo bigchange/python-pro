@@ -1,9 +1,13 @@
+
+# refer ：https://github.com/google/python-fire
 import fire
+
 
 class IngestionStage(object):
 
     def run(self):
         return 'Ingesting! Nom nom nom...'
+
 
 class DigestionStage(object):
 
@@ -12,6 +16,7 @@ class DigestionStage(object):
 
     def status(self):
         return 'Satiated.'
+
 
 class Pipeline(object):
 
@@ -22,6 +27,7 @@ class Pipeline(object):
     def run(self):
         self.ingestion.run()
         self.digestion.run()
+
 
 class Example(object):
     def hello(self, name='world'):
@@ -35,6 +41,7 @@ class Example(object):
 def main():
     fire.Fire()
     # we can try to use: fire.Fire(Example) to see the diff in CLI
+
 
 if __name__ == '__main__':
     main()
