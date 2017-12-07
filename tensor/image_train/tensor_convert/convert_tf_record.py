@@ -68,11 +68,9 @@ def load_data(trainPath, writer):
             imageInput = np.array(imageInput)
             imageInput = convert2gray(imageInput)
             image = imageInput.flatten() / 255
-            # print ("image:", image.shape)
             image = image.tolist()
             target = text2vec(text)
             target = target.tolist()
-            # print ("targrt:",target)
             example = tf.train.Example(features=tf.train.Features(feature={
                 "target": tf.train.Feature(float_list=tf.train.FloatList(value=target)),
                 "image": tf.train.Feature(float_list=tf.train.FloatList(value=image)),
@@ -86,7 +84,7 @@ def convert(trainPath,
     writerTrain = tf.python_io.TFRecordWriter(trainOutPath)
     writerTest = tf.python_io.TFRecordWriter(testOutPath)
 
-    # load_data(trainPath, writerTrain)
+    load_data(trainPath, writerTrain)
     load_data(testPath, writerTest)
 
     writerTrain.close()
@@ -95,3 +93,9 @@ def convert(trainPath,
 
 if __name__ == '__main__':
     fire.Fire()
+
+"""
+
+python convert_tf_record.py convert --trainPath=/Users/devops/Downloads/github/codeRec/gen_captcha/train --trainOutPath=/Users/devops/Downloads/github/codeRec/gen_captcha/train_tf/train.tfrecord --testPath=/Users/devops/Downloads/github/codeRec/gen_captcha/test --testOutPath=/Users/devops/Downloads/github/codeRec/gen_captcha/test_tf/test.tfrecord
+
+"""

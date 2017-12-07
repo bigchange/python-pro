@@ -207,7 +207,7 @@ def accuracy_ops():
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
     return accuracy
 
-# 训练
+# 训练(自动生成的图片来训练)
 def train_crack_captcha_cnn():
     output = crack_captcha_cnn()
     # loss 损失数值
@@ -245,6 +245,7 @@ def train_crack_captcha_cnn():
             step += 1
 
 def load_test_dataset_all(sess, test_input, testDatas):
+    """自定义批量测试数据， 注意feed_dict传入的是批量数据的数组，不是tensor形式的数据"""
     while True:
         try:
             target, image = sess.run(test_input)
@@ -264,30 +265,25 @@ def test_eval(sess, accuracy, testDatas, batchSize):
         X_val = testDatas[i * batchSize:endOff]
         feed_dict = {X: [item[1] for item in X_val], Y:[item[0] for item in X_val], keep_prob: 1.}
         accuracyV = sess.run([accuracy], feed_dict)
+        print ("batch : {}  accuray: {}".format(i, accuracyV))
         totalAccuracy += accuracyV
     return totalAccuracy / numBatch
 
 
-def crack_captcha(iteratorTest, test_input, batch_size):
+def crack_captcha(imageInput):
     output = crack_captcha_cnn()
-    testDatas = []
     saver = tf.train.Saver()
     with tf.Session() as sess:
         saver.restore(sess, tf.train.latest_checkpoint('.'))
-        sess.run(iteratorTest.initializer)
-        load_test_dataset_all(sess=sess, test_input=test_input, testDatas=testDatas)
-        accuracy = accuracy_ops()
-        ret = test_eval(sess, accuracy, testDatas=testDatas, batchSize=10)
-        print ("test_eval:", ret)
-        # predict = tf.argmax(tf.reshape(output, [-1, MAX_CAPTCHA, CHAR_SET_LEN]), 2)
-        # text_list = sess.run(predict, feed_dict={X: , keep_prob: 1})
-        # text = text_list[0].tolist()
-        # vector = np.zeros(MAX_CAPTCHA * CHAR_SET_LEN)
-        # i = 0
-        # for n in text:
-        #     vector[i * CHAR_SET_LEN + n] = 1
-        #     i += 1
-        # return vec2text(vector)
+        predict = tf.argmax(tf.reshape(output, [-1, MAX_CAPTCHA, CHAR_SET_LEN]), 2)
+        text_list = sess.run(predict, feed_dict={X: imageInput, keep_prob: 1})
+        text = text_list[0].tolist()
+        vector = np.zeros(MAX_CAPTCHA * CHAR_SET_LEN)
+        i = 0
+        for n in text:
+            vector[i * CHAR_SET_LEN + n] = 1
+            i += 1
+        return vec2text(vector)
 
 
 def predict(path):
@@ -315,8 +311,6 @@ def predict_input_with_tf(path):
     datasetTrain = datasetTrain.map(parse_tfrecord_function)
     datasetTrain = datasetTrain.repeat(10)
     datasetTrain = datasetTrain.shuffle(buffer_size=200)
-    # datasetTrain = datasetTrain.batch(64)
-    # iterator = datasetTrain.make_one_shot_iterator()
     iterator = datasetTrain.make_initializable_iterator()
     batch_inputs = iterator.get_next()
     crack_captcha(iterator, batch_inputs, batch_size=64)

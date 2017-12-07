@@ -130,8 +130,8 @@ Y = tf.placeholder(tf.float32, [None, MAX_CAPTCHA * CHAR_SET_LEN])
 keep_prob = tf.placeholder(tf.float32)  # dropout
 
 
-def crack_captcha_cnn(w_alpha=0.01, b_alpha=0.1):
-    x = tf.reshape(X, shape=[-1, IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+def crack_captcha_cnn(x, w_alpha=0.01, b_alpha=0.1):
+    x = tf.reshape(x, shape=[-1, IMAGE_HEIGHT, IMAGE_WIDTH, 1])
 
     # w_c1_alpha = np.sqrt(2.0/(IMAGE_HEIGHT*IMAGE_WIDTH)) #
     # w_c2_alpha = np.sqrt(2.0/(3*3*32))
@@ -182,19 +182,24 @@ def load_test_dataset_all(sess, test_input, testDatas):
             break
 
 
-def test_eval(sess, accuracy, testDatas, batchSize):
+def test_eval(sess, test_loss, accuracy, testDatas, batchSize):
     totalLen = len(testDatas)
     numBatch = int((totalLen - 1) / batchSize) + 1
-    totalAccuracy = 0
+    totalLoss = 0
+    totalAcc = 0
+    print ("test_eval numBatch:", numBatch)
     for i in range(numBatch):
         endOff = (i + 1) * batchSize
         if endOff > totalLen:
             endOff = totalLen
         X_val = testDatas[i * batchSize:endOff]
-        feed_dict = {X: [item[1] for item in X_val], keep_prob: 1.}
-        accuracyV = sess.run([accuracy], feed_dict)
-        totalAccuracy += accuracyV
-    return totalAccuracy / numBatch
+        feed_dict = {X: [item[1] for item in X_val], Y: [item[0] for item in X_val], keep_prob: 1.}
+        test_lossV, accuracyV = sess.run([test_loss, accuracy], feed_dict)
+        totalLoss = totalLoss + test_lossV
+        totalAcc = totalAcc + accuracyV
+        if i % 500 == 0:
+            print("test_eval in_batch i:%s/%s, loss:%s, acc:%s" % (i, numBatch, test_lossV, accuracyV))
+    return totalLoss / numBatch, totalAcc / numBatch
 
 
 def load_batch_data(train_path, test_path):
@@ -202,7 +207,7 @@ def load_batch_data(train_path, test_path):
     datasetTrain = datasetTrain.map(parse_tfrecord_function)
     datasetTrain = datasetTrain.repeat(10)
     datasetTrain = datasetTrain.shuffle(buffer_size=200)
-    datasetTrain = datasetTrain.batch(64)
+    datasetTrain = datasetTrain.batch(100)
     iterator = datasetTrain.make_one_shot_iterator()
     batch_inputs = iterator.get_next()
 
@@ -215,43 +220,67 @@ def load_batch_data(train_path, test_path):
     return batch_inputs, test_inputs, iteratorTest
 
 
-# 训练
-def train_crack_captcha_cnn(trainDataPaths, testDataPath):
-    output = crack_captcha_cnn()
-    loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=output, labels=Y))
+def train_op(loss):
     optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
+    return optimizer
 
+
+def test_loss():
+    return loss(X, Y)
+
+
+def loss(x, y):
+    output = crack_captcha_cnn(x)
+    loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=output, labels=y))
     predict = tf.reshape(output, [-1, MAX_CAPTCHA, CHAR_SET_LEN])
     max_idx_p = tf.argmax(predict, 2)
     max_idx_l = tf.argmax(tf.reshape(Y, [-1, MAX_CAPTCHA, CHAR_SET_LEN]), 2)
     correct_pred = tf.equal(max_idx_p, max_idx_l)
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+    return loss, accuracy
 
+
+# 训练
+def train_crack_captcha_cnn(trainDataPaths, testDataPath):
+    batch_inputs, test_inputs, iteratorTest = load_batch_data(trainDataPaths, testDataPath)
+    print ("#### load_batch_data finished !!")
+    loss_, acc = loss(batch_inputs[1], batch_inputs[0])
+    test_loss_, test_acc_ = test_loss()
+    optimizer = train_op(loss_)
     saver = tf.train.Saver()
     with tf.Session() as sess:
+        testDatas = []
         sess.run(tf.global_variables_initializer())
-
+        sess.run(iteratorTest.initializer)
+        load_test_dataset_all(sess=sess, test_input=test_inputs, testDatas=testDatas)
         step = 0
         while True:
-            batch_x, batch_y = get_next_batch(64)
-            _, loss_ = sess.run([optimizer, loss], feed_dict={X: batch_x, Y: batch_y, keep_prob: 0.75})
-            print("step:%s,loss:%s" % (step, loss_))
-
-            if step % 100 == 0:
-                test_image, test_label = get_next_batch(100)
-                acc = sess.run(accuracy, feed_dict={X: test_image, Y: test_label, keep_prob: 1.})
-                print(step, acc)
-                if acc >= 0.9:
+            # 尝试使用自定义批量数据（包含测试和训练过程）
+            # batch_x, batch_y = get_next_batch(100)
+            _, loss__ = sess.run([optimizer, loss_], feed_dict={keep_prob: 0.75})
+            if step % 500 == 0:
+                print("step:%s,loss:%s" % (step, loss__))
+            if loss__ <= 0.019:
+                saver.save(sess, "crack_capcha.model", global_step=step)
+                break
+            if step % 500 == 0:
+                # test_image, test_label = get_next_batch(100)
+                # acc = sess.run(accuracy, feed_dict={X: test_image, Y: test_label, keep_prob: 1.})
+                tess_loss_ret, test_acc_ret = test_eval(sess, test_loss_, test_acc_, testDatas=testDatas, batchSize=100)
+                print("step:%s,test_loss:%s, acc:%s" % (step, tess_loss_ret, test_acc_ret))
+                print(step, test_acc_ret)
+                if test_acc_ret >= 0.9:
                     saver.save(sess, "crack_capcha.model", global_step=step)
                     break
-                if acc > 0.98:
+                if test_acc_ret > 0.98:
                     saver.save(sess, "crack_capcha.model", global_step=step)
                     break
             step += 1
 
 
 def main():
-    train_crack_captcha_cnn("train.tfrecord", "test.record")
+    train_crack_captcha_cnn("/Users/devops/Downloads/github/codeRec/gen_captcha/train_tf/train.tfrecord",
+                            "/Users/devops/Downloads/github/codeRec/gen_captcha/test_tf/test.tfrecord")
     # fire.Fire()
 
 

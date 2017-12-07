@@ -565,7 +565,7 @@ class MatchModel:
              self.education_schools_holder, self.education_degrees_holder,
              self.education_starts_holder, self.education_majors_holder,
              self.work_expr_orgs_holder, self.work_expr_starts_holder,
-             self.work_expr_durations_holder, self.work_expr_jobs_holder,self.work_expr_orgIds_holder,
+             self.work_expr_durations_holder, self.work_expr_jobs_holder, self.work_expr_orgIds_holder,
              self.work_expr_descs_holder, self.proj_expr_descs_holder],
             reuse=True)
 
