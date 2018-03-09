@@ -268,6 +268,7 @@ def train_crack_captcha_cnn(trainDataPaths, testDataPath):
                 # acc = sess.run(accuracy, feed_dict={X: test_image, Y: test_label, keep_prob: 1.})
                 tess_loss_ret, test_acc_ret = test_eval(sess, test_loss_, test_acc_, testDatas=testDatas, batchSize=100)
                 print("step:%s,test_loss:%s, acc:%s" % (step, tess_loss_ret, test_acc_ret))
+                # 为何测试数据上准确率提高不了， loss不下降
                 print(step, test_acc_ret)
                 if test_acc_ret >= 0.9:
                     saver.save(sess, "crack_capcha.model", global_step=step)
