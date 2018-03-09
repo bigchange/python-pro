@@ -29,7 +29,6 @@ def length():
     length = tf.cast(length, tf.int32)
     return length
 
-
 L = length()
 
 print ("L:", sess.run(L))
