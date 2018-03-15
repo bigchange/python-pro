@@ -286,6 +286,7 @@ def convert2tf(ex, neg):
     return example
 
 
+# 写入tfrecord
 def writeToTfRecord(tfOut, ex, negProjs, ntimePos):
     example = convert2tf(ex, None)
     for _ in range(ntimePos):
@@ -296,6 +297,7 @@ def writeToTfRecord(tfOut, ex, negProjs, ntimePos):
     return ntimePos + len(negProjs)
 
 
+# 加载word嵌入字典
 def load_vocab(path):
     ret = {}
     with open(path, "r") as fp:
@@ -329,6 +331,7 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
         passwd="",
         db="ai_pipeline")
     cursor = db.cursor()
+    # 处理订单数据 - 每个cid下的pids
     if orderDataPath is not None:
         with open(orderDataPath, 'rb') as csvfile:
             orderReader = csv.reader(csvfile, delimiter=',')
@@ -354,7 +357,7 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
             hunterProjs.setdefault(cid, [])
             hunterProjs[cid].append(pid)
     print("hunterProjMap size:%d" % (len(hunterProjMap)))
-
+    # 处理职位详情信息
     cursor.execute(
         """SELECT project_id, project_detail,origin_updated_at,origin_created_at
                     FROM project_detail 
@@ -380,11 +383,12 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
         projPublishDate = datetime.date.fromtimestamp(ctime / 1000)
         projUpdateDate = datetime.date.fromtimestamp(utime / 1000)
         key1 = projPublishDate.isoformat()
+        # 按每天统计project的量
         dateProjMap.setdefault(key1, [])
         dateProjMap[key1].append(proj)
         projectIds.add(pid)
     print("total projects:%d, proj map:%d" % (len(projectIds), len(projMap)))
-
+    # 处理埋点数据 - 职位详细下的点击情况的筛选
     cursor.execute("""SELECT project_id, user_id, content,  updated_at
                   FROM action_event
                   WHERE action='click_c_project_detail'
@@ -425,7 +429,8 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
         userProjMap[uid].append(UserProjPair(uid, pid, atime))
         total += 1
     print("total valid:%d,noContent:%d, filtered:%d" % (total, noContent,
-                                                        filtered))
+                                                       filtered))
+    # 处理埋点数据 - 用户的搜索关键字处理
     cursor.execute("""SELECT project_id, user_id, content,  updated_at
                   FROM action_event
                   WHERE action='click_c_search'
