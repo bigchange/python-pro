@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# <<licensetext>>
+# <<>>
 
 import tensorflow as tf
 import math
