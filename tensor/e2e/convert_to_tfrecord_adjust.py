@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# <<licensetext>>
 import os
 import tensorflow as tf
 import w2v
