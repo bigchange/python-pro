@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-
-# File: train_e2e.py
-# Project: /Users/tech/code/idmg
-# Created: Thu Aug 10 2017
-# Author: Koth Chen
-# Copyright (c) 2017 Koth
-#
 # <<licensetext>>
 
 from __future__ import absolute_import

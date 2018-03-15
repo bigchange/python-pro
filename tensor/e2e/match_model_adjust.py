@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-
-# File: match_model.py
-# Project: /Users/tech/code/idmg
-# Created: Thu Aug 03 2017
-# Author: Koth Chen
-# Copyright (c) 2017 Koth
-#
 # <<licensetext>>
 
 import tensorflow as tf

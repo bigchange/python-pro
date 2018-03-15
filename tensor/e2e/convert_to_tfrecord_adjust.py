@@ -1,12 +1,4 @@
 #!/usr/bin/env python
-# -*- coding:utf-8 -*-
-
-# File: convert_to_tfrecord.py
-# Project: /Users/tech/code/idmg
-# Created: Tue Aug 08 2017
-# Author: Koth Chen
-# Copyright (c) 2017 Koth
-#
 # <<licensetext>>
 import os
 import tensorflow as tf

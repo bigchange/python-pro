@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import tensorflow as tf
 import time
 
@@ -31,4 +32,11 @@ def length():
 
 L = length()
 
-print ("L:", sess.run(L))
+
+def string2Char(str):
+    chars = list(unicode(str.decode("utf8")))
+    # [我爱你] -> [u'\u6211', u'\u7231', u'\u4f60']
+    # [ I LOVE YOU] -> [u'I', u' ', u'L', u'O', u'V', u'E', u' ', u'Y', u'O', u'U']
+    return chars
+
+print (string2Char("I LOVE YOU"))
