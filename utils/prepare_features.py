@@ -490,6 +490,7 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
             for i in range(nv):
                 if i == 0:
                     v2.append(v[i])
+                #  过滤 间隔时间在2秒内， 前后pid相等, 前后搜索关键字相同
                 elif (v[i].utime - v[i - 1].utime).total_seconds() <= 2 or (
                                 v[i].pid != 0 and v[i].pid == v[i - 1].pid
                 ) or (v[i].word is not None and v[i].word == v[i - 1].word):
@@ -501,10 +502,12 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
 
             for i in range(len(v2), 0, -1):
                 if v2[i - 1].word is None and v2[i - 1].pid != 0:
+                    # 点击下的set pids
                     if v2[i - 1].pid in pidset:
                         continue
                     pidset.add(v2[i - 1].pid)
                     keystr = str(v2[i - 1].uid) + "_" + str(v2[i - 1].pid)
+                    # 如果这个user有订单行为，标签设置为2
                     if keystr in hunterProjMap:
                         # print("got key in map:%s" % (keystr))
                         v2[i - 1].tag = 2
@@ -519,6 +522,7 @@ def stats(trainOutPath, testOutPath, vocabPath, orderDataPath=None):
 
             donotUseForNeg = set([])
             if k in hunterProjs:
+                # 出现在订单中的所有pids
                 donotUseForNeg = set(hunterProjs[k])
 
             for i in range(nn):
