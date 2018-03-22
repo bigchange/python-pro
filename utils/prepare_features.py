@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+# 1 id id [Click id time]+ [Search word time]+ ...
 # <<licensetext>>
 
 import fire
