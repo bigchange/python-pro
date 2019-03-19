@@ -66,12 +66,13 @@ for i in range(len(idx)):
 # Assign the most frequent label to the centroid
 labels_map = [np.argmax(c) for c in counts]
 labels_map = tf.convert_to_tensor(labels_map)
+print ("labels_map:", sess.run(labels_map, feed_dict={X: full_data_x}))
 print ("labels_map:", labels_map) # (25,)
 # Evaluation ops
 # Lookup: centroid_id -> label
-print ("cluster_idx:", cluster_idx)
+print ("cluster_idx:", sess.run(cluster_idx, feed_dict={X: full_data_x}))
 cluster_label = tf.nn.embedding_lookup(labels_map, cluster_idx)
-print ("cluster_label:", cluster_label)
+print ("cluster_label:", sess.run(cluster_label, feed_dict={X: full_data_x}))
 # Compute accuracy
 correct_prediction = tf.equal(cluster_label, tf.cast(tf.argmax(Y, 1), tf.int32))
 accuracy_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
