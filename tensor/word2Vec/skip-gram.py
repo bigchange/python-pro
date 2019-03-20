@@ -92,6 +92,7 @@ def next_batch(batch_size, num_skips, skip_window):
     data_index += span
     for i in range(batch_size // num_skips):
         context_words = [w for w in range(span) if w != skip_window]
+        # select num-skips context word
         words_to_use = random.sample(context_words, num_skips)
         print ("words_to_use:", words_to_use)
         for j, context_word in enumerate(words_to_use):
