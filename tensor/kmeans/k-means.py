@@ -10,8 +10,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # Import MNIST data
 from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("../MNIST_data", one_hot=True)
+mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True)
 full_data_x = mnist.train.images
+
+full_data_y = mnist.test.labels
+
+print ("full_data_y:", tf.cast(full_data_y, tf.int64))
 
 # Parameters
 num_steps = 50 # Total steps to train
