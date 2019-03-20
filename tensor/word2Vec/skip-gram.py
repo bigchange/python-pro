@@ -127,6 +127,7 @@ with tf.device('/cpu:0'):
     nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
 
 # Compute the average NCE loss for the batch
+# 负例采样方式
 loss_op = tf.reduce_mean(
     tf.nn.nce_loss(weights=nce_weights,
                    biases=nce_biases,
