@@ -210,6 +210,7 @@ class Model(object):
             self.final_bias = tf.get_variable(
                 "final_bias", shape=[2])
 
+    # label_index数量 == [mask]掉的词数量
     def length(self, data, axis=1):
         used = tf.sign(tf.abs(data))
         length = tf.reduce_sum(used, reduction_indices=axis)
@@ -247,12 +248,15 @@ class Model(object):
         X = self.inference(transformer, name="inference_final" if not training else None, training=training)
         # print("Now X is:%r"%(X))
         labelLen = self.length(self.label_index)
-        shapeS = tf.shape(self.label_index)
+        shapeS = tf.shape(self.label_index) # [batch, index_length)
 
         todoX = batch_gather(X, self.label_index)
 
         
         embeddings = transformer.embedding_softmax_layer.shared_weights
+
+        # 这里的logits可能将一个输入中的多个[mask] 通过batch_gather变成多个batch下的预测单个[mask], 最后在preds的时候通过reshape
+        # [-1, self.max_labels], 又可以得到单个输入的多个preds
         logits = tf.nn.xw_plus_b(tf.reshape(
             todoX, [-1, self.embedding_size]), tf.transpose(embeddings), self.languge_model_bias)
 
@@ -264,6 +268,7 @@ class Model(object):
         #     labels=tf.reshape(self.label_target, [-1]),
         #     logits=logits
         # )
+        # max_labels: 代表单个输入中最多的[mask]数量
         preds = tf.reshape(tf.arg_max(logits, dimension=1,
                                       output_type=tf.int32), [-1, self.max_labels])
 
@@ -279,6 +284,7 @@ class Model(object):
         #     partition_strategy='div',
         # )
         # print("mlmCost: %r" % (mlmCost))
+        # mask掉不是[mask]位置带来的错误预测sameCount结果，只计算[mask]位置的sameCounts
         lengthMask = tf.cast(
             tf.sequence_mask(labelLen, self.max_labels), tf.float32)
         sameCounts = sameCounts * lengthMask
@@ -287,6 +293,7 @@ class Model(object):
         accuracy = sameCounts / totalCount
         # print("lengthMask: %r" % (lengthMask))
         mlmCost = tf.reshape(mlmCost, [-1, self.max_labels])
+        # 同理sameCounts: 计算的损失也只需考虑[mask]位置的预测带来的结果损失，其他位置的需要mask掉
         mlmCost = mlmCost * lengthMask
 
         mlmCost = tf.reduce_sum(mlmCost, axis=1)
