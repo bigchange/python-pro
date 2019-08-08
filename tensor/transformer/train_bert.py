@@ -13,7 +13,7 @@ import random
 
 import tensorflow as tf
 
-from tensor import Model as bert_model
+from tensor.transformer.bert_model import Model as bert_model
 
 FLAGS = tf.app.flags.FLAGS
 
