@@ -10,10 +10,10 @@ import math
 
 import numpy as np
 import tensorflow as tf
-import model_industry as model
+from tensor.model_example.model_industry import Model as model
 import random
-import optimization
-import model_transfer as mtransfer
+import tensor.transformer.bert.optimization as optimization
+import tensor.transformer.bert.model_transfer as mtransfer
 
 
 FLAGS = tf.app.flags.FLAGS

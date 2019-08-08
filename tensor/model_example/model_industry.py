@@ -4,8 +4,7 @@
 import tensorflow as tf
 import math
 import numpy as np
-import bert_official as modeling
-from bert_official import BertConfig, BertModel
+from tensor.transformer.bert.bert_official import BertConfig, BertModel
 
 kCheckMaxLen = 128
 kVocabSize = 32003
