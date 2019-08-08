@@ -152,6 +152,8 @@ def parse_tfrecord_function(example_proto):
     sentence = parsed_features["sentence"]
     sentence.set_shape([(kMaxSeqLen-1)])
     sentence = tf.reshape(sentence, [kMaxSeqLen-1])
+    # kMaxLabel是[mask]的最大数量，也可能少，少的后面append 0 填充
+    # 这就是后面计算sameCounts和mlmCost需要mask掉后面填充为0的位置所带的的误差
     label_targets = parsed_features["label_target"]
     label_targets.set_shape([kMaxLabel])
     label_indexies = parsed_features["label_index"]
@@ -210,7 +212,7 @@ class Model(object):
             self.final_bias = tf.get_variable(
                 "final_bias", shape=[2])
 
-    # label_index数量 == [mask]掉的词数量
+    # label_index数量 == [mask]掉的词数量, if label_index > 0 then 1, count 1的数量
     def length(self, data, axis=1):
         used = tf.sign(tf.abs(data))
         length = tf.reduce_sum(used, reduction_indices=axis)
@@ -284,7 +286,7 @@ class Model(object):
         #     partition_strategy='div',
         # )
         # print("mlmCost: %r" % (mlmCost))
-        # mask掉不是[mask]位置带来的错误预测sameCount结果，只计算[mask]位置的sameCounts
+        # mask掉不是[mask]位置为0的，[mask]数量可能小于max_labels。只计算[mask]位置不为0的sameCounts
         lengthMask = tf.cast(
             tf.sequence_mask(labelLen, self.max_labels), tf.float32)
         sameCounts = sameCounts * lengthMask
@@ -293,7 +295,7 @@ class Model(object):
         accuracy = sameCounts / totalCount
         # print("lengthMask: %r" % (lengthMask))
         mlmCost = tf.reshape(mlmCost, [-1, self.max_labels])
-        # 同理sameCounts: 计算的损失也只需考虑[mask]位置的预测带来的结果损失，其他位置的需要mask掉
+        # 同理sameCounts: 计算的损失也只需考虑[mask]位置不为0的预测带来的结果损失，其他位置的需要mask掉
         mlmCost = mlmCost * lengthMask
 
         mlmCost = tf.reduce_sum(mlmCost, axis=1)
