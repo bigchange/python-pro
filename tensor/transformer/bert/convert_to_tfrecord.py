@@ -33,12 +33,17 @@ def gen_sentence_features(a, b, seg):
     MASK = totalVocab+1
     # label index should plus one, will pad '[CLS]' during trainning
     for i in range(na):
+        # 15% 的用来mask
         if random.random() <= 0.15 and len(label_index)<MAX_LABELS:
+            # label_index 已经是有序的
             label_index.append(i+1)
+            # 对应label_index下的target的encode_id(spm)
             label_target.append(ss[i])
+            # 80% mask
             if random.random() <= 0.8:
                 ss[i] = MASK
             else:
+                # 50% 随机
                 if random.random() <= 0.5:
                     # random one
                     ss[i] = random.randint(1, totalVocab-1)
@@ -52,16 +57,23 @@ def gen_sentence_features(a, b, seg):
                 if random.random() <= 0.5:
                     # random one
                     ss[i] = random.randint(1, totalVocab-1)
-
+    # 不够最大长度，补0
     for i in range(nab+1, MAX_TOKEN_NUM_PER_SENTENCE):
         ss.append(0)
+
     assert(len(label_index)==len(label_target))
+
+    # 不够最大长度，补0
     for i in range(len(label_index), MAX_LABELS):
       label_index.append(0)
       label_target.append(0)
+
     assert(len(ss)==MAX_TOKEN_NUM_PER_SENTENCE)
+
     assert(len(label_index)==MAX_LABELS)
+
     assert(len(label_target)==MAX_LABELS)
+
     return ss, na, nab, label_index, label_target
 
 
