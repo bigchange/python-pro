@@ -165,13 +165,16 @@ class Model(object):
             seqEmds = tf.nn.embedding_lookup(self.words, X)
             shapeS = tf.shape(seqEmds)
             clsH = tf.tile(self.cls, [shapeS[0]])
+            # self.embedding_size-self.pos_embedding_size-self.seg_embedding_size] == embeddingSize
             clsH = tf.reshape(clsH, [
                               shapeS[0], self.embedding_size-self.pos_embedding_size-self.seg_embedding_size])
             clsH = tf.expand_dims(clsH, axis=1)
+            # add [cls]的embedding
             X = tf.concat([clsH, seqEmds], axis=1)
+            # position add [cls]: cls + max_token_per_sentence = final_length = 200
             xs = tf.tile([0], [shapeS[0]])
             xs = tf.reshape(xs, [shapeS[0], 1])
-
+            # get position的embedding
             Xpos = positional_encoding(
                 tf.concat([xs, self.sentence_placeholder], axis=1), self.pos_embedding_size)
             amask = tf.sequence_mask(
@@ -179,9 +182,11 @@ class Model(object):
             abmask = tf.sequence_mask(
                 self.ab_length, self.max_token_per_sentence+1, dtype=tf.int32)
             totalmask = amask + abmask
+            # add segment id 的embedding, default 0, if is a sentence then 2, else if is b sentence then 1
             segE = tf.nn.embedding_lookup(self.segs, totalmask)
             X = tf.concat([X, Xpos, segE], axis=2)
             print("now X is: %r" % (X))
+            # 10 heads， 2 layers,  abmask: 记录输入的有效token位置
             X = TransformerModel(10, 3, X, self.dropout_h, mask=abmask)
 
         return X

@@ -225,7 +225,7 @@ def block(x, n_head, scope, droprate=0, scale=False, mask=None):
         h = norm(n+m, 'layer_norm_2')
         return h
 
-
+# TransformerModel 的初始化
 def model(n_head, n_layer, X, droprate=0, scale=False, mask=None):
     for layer in range(n_layer):
         X = block(X, n_head, 'transformer_%d' %
