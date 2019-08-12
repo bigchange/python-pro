@@ -3,13 +3,11 @@
 # File: convert_to_tfrecord.py
 # Project: bert
 
-import os
-import tensorflow as tf
+import random
+
 import fire
 import sentencepiece as spm
-import random
-import json
-import numpy as np
+import tensorflow as tf
 
 MAX_TOKEN_NUM_PER_SENTENCE = 199
 MAX_LABELS = 26

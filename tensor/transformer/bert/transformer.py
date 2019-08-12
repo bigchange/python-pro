@@ -3,12 +3,6 @@
 # File: transformer.py
 # Modify code based on openai's finetune-transformer-lm
 
-import os
-import time
-import math
-import json
-import random
-import argparse
 import numpy as np
 import tensorflow as tf
 

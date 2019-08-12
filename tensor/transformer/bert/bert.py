@@ -2,11 +2,11 @@
 # -*- coding:utf-8 -*-
 import tensorflow as tf
 from tensorflow.python.ops import gen_math_ops
-import numpy as np
-import math
-from transformer import model as TransformerModel, shape_list, positional_encoding
+
+from transformer import model as TransformerModel, positional_encoding
 
 
+# 张量被索引params根据索引indices获取
 def batch_gather(params, indices, name=None):
     """Gather slices from `params` according to `indices` with leading batch dims.
     This operation assumes that the leading dimensions of `indices` are dense,
@@ -68,7 +68,7 @@ def batch_gather(params, indices, name=None):
         result.set_shape(final_shape)
         return result
 
-
+# tfrecord 文件格式解码
 def parse_tfrecord_function(example_proto):
     features = {
         "label_target":
@@ -102,14 +102,15 @@ def parse_tfrecord_function(example_proto):
 
 class Model(object):
     def __init__(self,
-                 maxTokenPerSetence,
                  wordsEm,
                  embeddingSize,
                  vocabSize,
                  lastHiddenSize=200,
                  positionEmbeddingSize=18,
-                 segEmbeddingSize=2):
-        self.max_token_per_sentence = 199
+                 segEmbeddingSize=2,
+                 maxTokenPerSetence=199):
+        # 每个句子最大的token数199
+        self.max_token_per_sentence = maxTokenPerSetence
         self.max_labels = 30
         self.pos_embedding_size = positionEmbeddingSize
         self.seg_embedding_size = segEmbeddingSize
@@ -127,8 +128,10 @@ class Model(object):
         self.words = tf.Variable(wordsEm, name="words")
         self.embedding_size = embeddingSize + \
             self.pos_embedding_size + self.seg_embedding_size
+        # cls
         self.cls = tf.get_variable(
             "CLS", [embeddingSize], initializer=tf.truncated_normal_initializer())
+        # segment embedding
         self.segs = tf.get_variable(
             "ABN", [3, self.seg_embedding_size], initializer=tf.truncated_normal_initializer())
         self.last_hidden_size = lastHiddenSize
@@ -153,9 +156,11 @@ class Model(object):
             self.nsp_bias = tf.get_variable(
                 "nsp_bias", shape=[2])
 
+    # tensor data关于eduction_indices=1维上值大于0的个数，其他维度不变
     def length(self, data):
         used = tf.sign(tf.abs(data))
         length = tf.reduce_sum(used, reduction_indices=1)
+        # tf.cast， 将tensor中的值cast为指定类型，tensor的维度保持不变
         length = tf.cast(length, tf.int32)
         return length
 
@@ -174,7 +179,7 @@ class Model(object):
             # position add [cls]: cls + max_token_per_sentence = final_length = 200
             xs = tf.tile([0], [shapeS[0]])
             xs = tf.reshape(xs, [shapeS[0], 1])
-            # get position的embedding
+            # position的embedding
             Xpos = positional_encoding(
                 tf.concat([xs, self.sentence_placeholder], axis=1), self.pos_embedding_size)
             amask = tf.sequence_mask(
@@ -187,6 +192,7 @@ class Model(object):
             X = tf.concat([X, Xpos, segE], axis=2)
             print("now X is: %r" % (X))
             # 10 heads， 2 layers,  abmask: 记录输入的有效token位置
+            # output :[bath_size, length, self.embedding_size]
             X = TransformerModel(10, 3, X, self.dropout_h, mask=abmask)
 
         return X
@@ -203,38 +209,49 @@ class Model(object):
 
     def loss(self):
         X = self.inference(name="inference_final")
-        labelLen = self.length(self.label_index)
+        # 获取label_index位置上X的结果值 [batch ,max_label,self.embedding_size] 计算loss
         todoX = batch_gather(X, self.label_index)
-
+        # faster way to train a softmax classifier over a huge number of classes.
+        # [batch_size, max_label]
         mlmCost = tf.nn.sampled_softmax_loss(
-            self.languge_model_weights,
-            self.languge_model_bias,
-            tf.reshape(self.label_target, [-1, 1]),
-            tf.reshape(todoX, [-1, self.embedding_size]),
-            self.sample_size_for_lm,
-            self.vocab_size,
+            self.languge_model_weights, # [self.vocab_size, self.embedding_size]
+            self.languge_model_bias, # [self.vocab_size]
+            tf.reshape(self.label_target, [-1, 1]), # labels
+            tf.reshape(todoX, [-1, self.embedding_size]), # inputs: [batch_size, dim]
+            self.sample_size_for_lm, # num_sampled
+            self.vocab_size, # num_classes
             partition_strategy='div',
         )
         # print("mlmCost: %r" % (mlmCost))
+        labelLen = self.length(self.label_index)
         lengthMask = tf.cast(
             tf.sequence_mask(labelLen, self.max_labels), tf.float32)
         # print("lengthMask: %r" % (lengthMask))
         mlmCost = tf.reshape(mlmCost, [-1, self.max_labels])
+        # 计算有效index内的loss, mask掉index为0的
         mlmCost = mlmCost * lengthMask
         mlmCost = tf.reduce_sum(mlmCost, axis=1, keepdims=True)
         mlmCost = mlmCost / tf.add(tf.cast(labelLen, tf.float32),0.00001)
         mlmCost = tf.reduce_mean(mlmCost)
         clsHidden = tf.slice(X, [0, 0, 0], [-1, 1, -1])
         clsHidden = tf.reshape(clsHidden, [-1, self.embedding_size])
+        # [batch_size, 2]
         preds = tf.nn.xw_plus_b(clsHidden, self.nsp_weights, self.nsp_bias)
+        # [batch_size]
         predLabels = tf.argmax(preds, axis=1)
+        # 这一批里面nsp预测正确的数量
         correct = tf.reduce_sum(
             tf.cast(tf.equal(tf.cast(predLabels, tf.int32), self.nsp_target), tf.int32))
-
+        # Note: self.nsp_target :[batch_size],  preds: [batch_size, num_classes]
         nspCost = tf.reduce_mean(
             tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=self.nsp_target, logits=preds))
+
         cost = nspCost + mlmCost
+        # regularization loss
         reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        # add regularization loss
+        # cost : total loss
         cost += tf.reduce_sum(reg_losses)
+
         return cost, correct
