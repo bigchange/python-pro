@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 import tensorflow as tf
-import bert
+import tensor.transformer.bert.bert as bert
 import random
 
 
@@ -19,30 +19,43 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('train_data_path', "/data/pre_train/train.tf",
                            'Training data path')
+
 tf.app.flags.DEFINE_string('test_data_path', "/data/pre_train/test.tf",
                            'Test data path')
+
 tf.app.flags.DEFINE_string('log_dir', "logs_bert", 'The log  dir')
+
 tf.app.flags.DEFINE_string("wordvec_path", "matching/corpus/vec_160k_string.txt",
                            "the word word2vec data path")
+
 tf.app.flags.DEFINE_integer("wordvec_size", 180, "the vec embedding size")
+
 tf.app.flags.DEFINE_integer("max_tokens_per_sentence", 199,
+
                             "max num of tokens per sentence")
 
 tf.app.flags.DEFINE_integer("max_epochs", 100, "max num of epoches")
 
 tf.app.flags.DEFINE_integer("batch_size", 256, "num example per mini batch")
+
 tf.app.flags.DEFINE_integer("step_size", 220000, "num example per mini batch")
+
 tf.app.flags.DEFINE_integer("test_batch_size", 256,
                             "num example per test batch")
+
 tf.app.flags.DEFINE_integer("train_steps", 4300000, "trainning steps")
+
 tf.app.flags.DEFINE_integer("track_history", 15, "track max history accuracy")
+
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")
+
 tf.app.flags.DEFINE_float("learning_rate_max", 0.004,
                           "the final minimal learning rate")
+
 tf.app.flags.DEFINE_float("learning_rate_min", 0.0001,
                           "the final minimal learning rate")
 
-
+# init word2vec and [SEP] [MASK]
 def load_w2v(path, expectDim):
     fp = open(path, "r")
     print("load data from:%s" % (path))
@@ -82,7 +95,9 @@ def make_feed_dict(model,
                    droprate=0,
                    lr=None):
     dicts = {model.sentence_placeholder: inputs[0], model.label_target: inputs[1],
-             model.label_index: inputs[2], model.a_length: inputs[3], model.ab_length: inputs[4], model.nsp_target: inputs[5], model.dropout_h: droprate}
+             model.label_index: inputs[2], model.a_length: inputs[3],
+             model.ab_length: inputs[4], model.nsp_target: inputs[5],
+             model.dropout_h: droprate}
     if lr is not None:
         dicts[model.learning_rate_h] = lr
     return dicts
@@ -125,7 +140,7 @@ def load_test_dataset_all(sess, test_input, testDatas):
             break
 
 
-def main(unused_argv):
+def main():
     curdir = os.path.dirname(os.path.realpath(__file__))
     trainDataPaths = tf.app.flags.FLAGS.train_data_path.split(",")
     for i in range(len(trainDataPaths)):
@@ -153,15 +168,21 @@ def main(unused_argv):
             testDataPaths, compression_type='GZIP', buffer_size=4096*1024*10)
         datasetTest = datasetTest.map(bert.parse_tfrecord_function)
         iteratorTest = datasetTest.make_initializable_iterator()
+
         test_input = iteratorTest.get_next()
+        # 加载词向量
         wordsEm = load_w2v(FLAGS.wordvec_path, FLAGS.wordvec_size)
         model = bert.Model(FLAGS.max_tokens_per_sentence, wordsEm,
                            FLAGS.wordvec_size, len(wordsEm))
         print("train data path:", trainDataPaths)
+        # loss
         loss, correct = model.loss()
+        # train
         train_op = model.train(loss)
+        # learning rate
         decayPerStep = (
             FLAGS.learning_rate - FLAGS.learning_rate_min) / FLAGS.train_steps
+
         sv = tf.train.Supervisor(logdir=FLAGS.log_dir)
         with sv.managed_session(master='') as sess:
             # actual training loop
@@ -169,13 +190,16 @@ def main(unused_argv):
             bestLoss = float("inf")
             trackHist = 0
             sess.run(iteratorTest.initializer)
+            # 加载测试数据集
             load_test_dataset_all(
                 sess, test_input, testDatas)
+            # write graph
             tf.train.write_graph(sess.graph_def,
                                  FLAGS.log_dir,
                                  "graph.pb",
                                  as_text=False)
             print("Loaded #tests:%d" % (len(testDatas)))
+            # 开始训练
             for step in range(training_steps):
                 if sv.should_stop():
                     break
@@ -184,6 +208,7 @@ def main(unused_argv):
                     clipStep = clipStep * 20000
                     trainDatas = sess.run(batch_inputs)
                     lr = FLAGS.learning_rate - decayPerStep * clipStep
+                    # build feed_dict
                     feedDict = make_feed_dict(
                         model, trainDatas, 0.2, lr)
                     trainLoss, _ = sess.run(
