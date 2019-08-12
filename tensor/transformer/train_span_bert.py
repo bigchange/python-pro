@@ -15,9 +15,9 @@ import math
 
 import numpy as np
 import tensorflow as tf
-import span_bert_model as bert_model
+from tensor.transformer.span_bert_model import Model as bert_model
 import random
-import optimization
+from tensor.transformer.optimization import AdamWeightDecayOptimizer as optimization
 
 
 FLAGS = tf.app.flags.FLAGS

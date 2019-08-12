@@ -4,16 +4,16 @@
 # Project: span_bert
 # Copyright 2020 - 2019
 
-import tensorflow as tf
-import fire
-import sentencepiece as spm
-import random
 import json
-import os
-import itertools
+import random
+
+import fire
 import numpy as np
+import sentencepiece as spm
+import tensorflow as tf
 
 kMaxSeqLen = 199
+# mask的最大数量
 kMaxTarget=26
 
 def _mask_seq(SPSIZE, X, numMaxTarget):
@@ -22,7 +22,9 @@ def _mask_seq(SPSIZE, X, numMaxTarget):
   targetIndexes=[]
   spansLeft=[]
   spansRight=[]
+  # wordLength sample weight
   lensWeights=[0.1,0.15,0.2,0.2,0.2,0.15]
+  # 最长wordlength = 6, 最小wordlength=1
   lensVal =[1,2,3,4,5,6]
   MASK = SPSIZE+1
   #先打乱顺序
@@ -140,6 +142,7 @@ def doConvert(spModelPath, inputPath,trainOutputPath, testOutputPath):
                       'y': tf.train.Feature(
                           int64_list=tf.train.Int64List(value=targets)
                       ),
+                      # 文本的实际有效长度
                       'len': tf.train.Feature(
                           int64_list=tf.train.Int64List(value=[nn])
                       ),
@@ -165,6 +168,7 @@ def doConvert(spModelPath, inputPath,trainOutputPath, testOutputPath):
             if (nall % 10000)==0:
               print("processed  %d, valid:%d , train/test : %d/%d......."%(nall, valid,ntrain, ntest))
     print("processed  %d, valid:%d , train/test : %d/%d......."%(nall, valid,ntrain, ntest))
+    # 每个number数量的targets出现次数
     for i in range(kMaxTarget):
       print("targets %02d , occurs %07d"%(i+1, tables[i]))
       
