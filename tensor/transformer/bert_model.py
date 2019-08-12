@@ -258,10 +258,10 @@ class Model(object):
         embeddings = transformer.embedding_softmax_layer.shared_weights
 
         # 这里的logits可能将一个输入中的多个[mask] 通过batch_gather变成多个batch下的预测单个[mask], 最后在preds的时候通过reshape
-        # [-1, self.max_labels], 又可以得到单个输入的多个preds
+        # [batch_size, max_labels, self.embedding_size]
         logits = tf.nn.xw_plus_b(tf.reshape(
             todoX, [-1, self.embedding_size]), tf.transpose(embeddings), self.languge_model_bias)
-
+        # [batch_size, max_labels, 1]
         mlmCost = model_utils.soft_cross_entropy_loss(logits,
                                                       tf.reshape(self.label_target, [-1]),
                                                       self.transformer_conf['label_smoothing'],

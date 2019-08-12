@@ -23,11 +23,11 @@ from __future__ import print_function
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-import attention_layer
-import beam_search
-import embedding_layer
-import ffn_layer
-import model_utils
+from tensor.transformer.attention_layer import Attention as attention_layer
+from tensor.transformer.beam_search import SequenceBeamSearch as beam_search
+from tensor.transformer.embedding_layer import EmbeddingSharedWeights as  embedding_layer
+from tensor.transformer.ffn_layer import FeedFowardNetwork as  ffn_layer
+import tensor.transformer.model_utils as model_utils
 
 
 _NEG_INF = -1e9
